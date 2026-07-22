@@ -33,10 +33,10 @@
       background-color: #222;
       color: white;
       display: flex;
-      align-items: flex-end;
+      align-items: center; /* Zorgt dat de middellijn van tijd en datum op één lijn ligt */
       justify-content: center;
       gap: 60px;
-      padding: 12px 30px;
+      padding: 0 30px;
       box-sizing: border-box;
       z-index: 10;
     }
@@ -63,11 +63,13 @@
     #weekdag {
       font-size: 27px;
       font-weight: 700;
+      line-height: 1;
     }
 
     #datum {
       font-size: 24px;
       font-weight: 700;
+      line-height: 1;
     }
 
     #bottom-bar {
@@ -252,7 +254,6 @@
     }
 
     haalWeerOp();
-    // Elke minuut (60.000 ms) opnieuw het weer ophalen
     setInterval(haalWeerOp, 60 * 1000);
   </script>
 </body>
