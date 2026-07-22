@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kiosk</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #fullscreen-video {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: fill;
+      background-color: black;
+      z-index: 1;
+    }
+
+    #top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 75px;
+      background-color: #222;
+      color: white;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 60px;
+      padding: 12px 30px;
+      box-sizing: border-box;
+      z-index: 10;
+      transition: all 0.5s ease; /* Zachte overgang bij wisselen modus */
+    }
+
+    #buttons-container {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 10px;
+    }
+
+    .action-button {
+      background-color: #222;
+      border: none;
+      padding: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-button:hover {
+      background-color: #444;
+    }
+
+    .action-button img {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
+    }
+
+    .action-button span {
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 0 10px;
+    }
+
+    #tijd {
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    #datum-container {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    #datum-info {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      align-items: center;
+    }
+
+    #weekdag {
+      font-size: 27px;
+      font-weight: 700;
+    }
+
+    #datum {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    #bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 75px;
+      background-color: #222;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 12px 30px;
+      box-sizing: border-box;
+      font-size: 24px;
+      font-weight: 600;
+      z-index: 10;
+      justify-content: space-between;
+    }
+
+    #bottom-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-grow: 1;
+    }
+
+    #nu-logo-container {
+      background-color: white;
+      border-radius: 50%;
+      padding: 4px;
+      height: 58px;
+      width: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #nu-logo {
+      height: 50px;
+      width: 50px;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    #bottom-news {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #weer {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 32px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    #weer-icoon {
+      width: 45px;
+      height: 45px;
+    }
+
+    #logo {
+      position: fixed;
+      top: 1cm;
+      right: calc(1cm + 20px);
+      height: 150px;
+      z-index: 20;
+      pointer-events: none;
+      user-select: none;
+      transition: all 0.5s ease;
+    }
+
+    /* --- Nacht-modus Specifieke Styling (40% kleiner = 60% van origineel) --- */
+    
+    body.nacht-modus #bottom-bar,
+    body.nacht-modus #btn-f1,
+    body.nacht-modus #btn-ziggo {
+      display: none !important;
+    }
+
+    body.nacht-modus #top-bar {
+      height: 45px; /* 60% van 75px */
+      padding: 0 30px;
+      align-items: center; /* Tijd vult nu verticaal de balk */
+    }
+
+    body.nacht-modus #tijd {
+      font-size: 40px; /* Vult de 45px balk bijna volledig */
+      line-height: 45px;
+    }
+
+    body.nacht-modus #weekdag {
+      font-size: 16px; /* ~60% van 27px */
+    }
+
+    body.nacht-modus #datum {
+      font-size: 14px; /* ~60% van 24px */
+    }
+
+    body.nacht-modus #logo {
+      height: 90px; /* 60% van 150px */
+      top: 0.6cm;  /* 60% van 1cm */
+      right: calc(0.6cm + 12px);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="top-bar">
+    <div id="buttons-container">
+      <button id="btn-f1" class="action-button" onclick="openExternalSite('https://f1tv.formula1.com/')">
+        <img src="f1.png" alt="F1TV" />
+      </button>
+      <button id="btn-ziggo" class="action-button" onclick="openExternalSite('https://www.ziggogo.tv/')">
+        <img src="ziggo.png" alt="Ziggo" />
+      </button>
+      <button id="terug-knop" class="action-button" onclick="focusWindow()" style="display: none;">
+        <span>↩ Terug</span>
+      </button>
+    </div>
+    <div id="tijd">--:--:--</div>
+    <div id="datum-container">
+      <div id="datum-info">
+        <div id="weekdag">---</div>
+        <div id="datum">-- -- ----</div>
+      </div>
+    </div>
+  </div>
+
+  <video id="fullscreen-video" autoplay muted playsinline>
+    </video>
+
+  <div id="bottom-bar">
+    <div id="bottom-left">
+      <div id="nu-logo-container">
+        <img id="nu-logo" src="nu.png" alt="Nu.nl logo" />
+      </div>
+      <div id="bottom-news">Nieuws laden...</div>
+    </div>
+    <div id="weer">
+      <span id="temperatuur">--°C</span>
+      <img id="weer-icoon" src="" alt="Weer" />
+    </div>
+  </div>
+
+  <img id="logo" src="https://europc.nl/wp-content/uploads/logo-europc.svg" alt="EuroPC Logo" />
+
+  <script>
+    // Tijd & datum
+    function updateTime() {
+      const now = new Date();
+      const dagen = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
+      const maanden = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+
+      document.getElementById('tijd').textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      document.getElementById('weekdag').textContent = dagen[now.getDay()];
+      document.getElementById('datum').textContent = `${now.getDate()} ${maanden[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    // Nieuws
+    const bottomNews = document.getElementById('bottom-news');
+    let nieuwsartikelen = [];
+    let index = 0;
+
+    async function laadNieuws() {
+      try {
+        const response = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://www.nu.nl/rss');
+        const data = await response.json();
+        nieuwsartikelen = data.items || [];
+
+        if (nieuwsartikelen.length === 0) {
+          bottomNews.textContent = 'Geen nieuws beschikbaar.';
+          return;
+        }
+
+        toonNieuws();
+        setInterval(toonNieuws, 5000);
+      } catch (error) {
+        bottomNews.textContent = 'Fout bij laden nieuws.';
+      }
+    }
+
+    function toonNieuws() {
+      const artikel = nieuwsartikelen[index];
+      const textarea = document.createElement('textarea');
+      textarea.innerHTML = artikel.title;
+      bottomNews.textContent = textarea.value;
+      index = (index + 1) % nieuwsartikelen.length;
+    }
+
+    laadNieuws();
+
+    // Externe site openen
+    let externVenster = null;
+
+    function openExternalSite(url) {
+      externVenster = window.open(url, '_blank', 'width=1920,height=1080');
+      document.getElementById('fullscreen-video').style.visibility = 'hidden';
+      document.getElementById('terug-knop').style.display = 'inline-flex';
+    }
+
+    function focusWindow() {
+      if (externVenster && !externVenster.closed) {
+        externVenster.close();
+      }
+      document.getElementById('fullscreen-video').style.visibility = 'visible';
+      document.getElementById('terug-knop').style.display = 'none';
+    }
+
+    // Weer ophalen
+    async function haalWeerOp() {
+      try {
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=51.1922&longitude=5.9870&current=temperature_2m,weather_code&timezone=auto');
+        const data = await response.json();
+        const temperatuur = Math.round(data.current.temperature_2m);
+        const weerCode = data.current.weather_code;
+
+        const weerIconen = {
+          0: '☀️', 1: '🌤️', 2: '☁️', 3: '☁️', 45: '🌫️', 48: '🌫️',
+          51: '🌦️', 53: '🌧️', 55: '🌧️', 61: '🌧️', 63: '🌧️', 65: '🌧️',
+          71: '🌨️', 73: '🌨️', 75: '🌨️', 80: '🌧️', 81: '🌧️', 82: '🌧️',
+          95: '⛈️', 96: '⛈️', 99: '⛈️'
+        };
+
+        document.getElementById('temperatuur').textContent = `${temperatuur}°C`;
+        const icoon = weerIconen[weerCode] || '❓';
+        document.getElementById('weer-icoon').src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><text x="0" y="34" font-size="34">${icoon}</text></svg>`;
+      } catch (e) {
+        document.getElementById('temperatuur').textContent = '--°C';
+      }
+    }
+
+    haalWeerOp();
+    setInterval(haalWeerOp, 5 * 60 * 1000);
+
+    // --- Video & Tijdschema Logica met Specifieke Dagen ---
+    const videoElement = document.getElementById('fullscreen-video');
+    let huidigeVideoLijst = [];
+    let currentVideoIndex = 0;
+    let isHuidigeModusOverdag = null;
+
+    function checkTijdschema() {
+      const nu = new Date();
+      const dag = nu.getDay(); // 0 = Zondag, 1 = Maandag, ..., 6 = Zaterdag
+      const uur = nu.getHours();
+      
+      let moetOverdagZijn = false;
+
+      // Logica per dag
+      if (dag === 1) { // Maandag: 13:00 - 18:00
+        moetOverdagZijn = (uur >= 13 && uur < 18);
+      } 
+      else if (dag >= 2 && dag <= 5) { // Dinsdag t/m Vrijdag: 09:00 - 18:00
+        moetOverdagZijn = (uur >= 9 && uur < 18);
+      } 
+      else if (dag === 6) { // Zaterdag: 10:00 - 17:00
+        moetOverdagZijn = (uur >= 10 && uur < 17);
+      } 
+      else if (dag === 0) { // Zondag: Altijd Nacht
+        moetOverdagZijn = false;
+      }
+
+      // Wissel alleen bij statusverandering
+      if (moetOverdagZijn !== isHuidigeModusOverdag) {
+        isHuidigeModusOverdag = moetOverdagZijn;
+        
+        if (isHuidigeModusOverdag) {
+          document.body.classList.remove('nacht-modus');
+          huidigeVideoLijst = ['video.mp4', 'video3.mp4', 'video4.mp4'];
+        } else {
+          document.body.classList.add('nacht-modus');
+          huidigeVideoLijst = ['video2.mp4'];
+        }
+
+        currentVideoIndex = 0;
+        videoElement.src = huidigeVideoLijst[currentVideoIndex];
+        videoElement.play();
+      }
+    }
+
+    function speelVolgendeVideo() {
+      currentVideoIndex = (currentVideoIndex + 1) % huidigeVideoLijst.length;
+      videoElement.src = huidigeVideoLijst[currentVideoIndex];
+      videoElement.play();
+    }
+
+    videoElement.addEventListener('ended', speelVolgendeVideo);
+    setInterval(checkTijdschema, 30000); // Check elke 30 seconden voor extra precisie
+    checkTijdschema();
+
+  </script>
+</body>
+</html>
